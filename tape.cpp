@@ -16,16 +16,16 @@ Tape::Tape()
 
 bool Tape::loadTape(std::string tpath)
 {
-    tapeFile = fopen(tpath, "r+");
+    tapeFile = fopen(tpath.c_str(), "r+");
     if (tapeFile == nullptr){
         std::cout << "could not load tape." << std::endl;
         return false;
     }
 
     int headerSize = sizeof(tape_hdr);
-    int filelength = 0;
+    int fileLength = 0;
     size_t bytesRead = fread(&tapeHeader, 1, headerSize, tapeFile);
-
+    std::cout << "Header Read " << bytesRead << " bytes." << std::endl;
 
     return true;
 }
