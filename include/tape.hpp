@@ -13,16 +13,9 @@ typedef struct  TapeHeader{
     unsigned short      blockAlign;     // 2=16-bit mono, 4=16-bit stereo 
     unsigned short      bitsPerSample;  // Number of bits per sample      
     char                dataChunkID[4]; // "data"  string   
-    unsigned long       Subchunk2Size;  // Sampled data length    
+    unsigned long       Subchunk2Size;  // Sampled data length
 
-}; 
-
-struct TapeData
-{
-    signed short* LEFT;
-    signed short* RIGHT;
-    unsigned int head;
-};
+}tape_hdr;
 
 class Tape 
 {
@@ -32,6 +25,11 @@ public:
     bool ejectTape();
     void _flush();
 
+
 private:
+    int getTapeSize();
     uint32_t sampleRate;
-}
+    FILE* tapeFile;
+    
+
+};

@@ -15,8 +15,6 @@ include_directories(lib/rtaudio/include)
 include_directories(include)
 
 # Compile a target using NanoGUI
-add_executable(tape tape.cpp) # ${Resources})
+add_executable(tape main.cpp tape.cpp) # ${Resources})
 
-# Lastly, additional libraries may have been built for you.  In addition to linking
-# against NanoGUI, we need to link against those as well.
 target_link_libraries(tape rtaudio)
