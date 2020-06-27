@@ -30,6 +30,7 @@ class Tape
 {
 public:
     Tape();
+    ~Tape();
     bool loadTape(std::string tpath);
     bool ejectTape();
     void _flush();
