@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string>
 #include <math.h>
+
 #include <tape.hpp>
 #include <audio.hpp>
 
@@ -10,8 +11,9 @@ typedef signed short SAMPLE;
 
 Tape::Tape()
 {
-    // constructor
-
+    tapeData = new int16_t[MAX_TAPE_SIZE];
+    _end = 0;
+    _head  = 0;
 }
 
 bool Tape::loadTape(std::string tpath)
@@ -25,33 +27,36 @@ bool Tape::loadTape(std::string tpath)
     int headerSize = sizeof(tape_hdr);
     int fileLength = 0;
     size_t bytesRead = fread(&tapeHeader, 1, headerSize, tapeFile);
-    std::cout << "Header Read " << bytesRead << " bytes." << std::endl;
 
-    std::cout << tapeHeader.SamplesPerSec << std::endl;
+    if (bytesRead > 0){
+        if (tapeHeader.Subchunk2Size > MAX_TAPE_SIZE){
+            std::cerr << tapeHeader.Subchunk2Size << " - selected file is larger than 10mb" << std::endl;
+            exit(1);
+        }else{
 
-    if (bytesRead > 0)
-    {
-        uint16_t bytesPerSample = tapeHeader.bitsPerSample / 8;      
-        uint64_t numSamples = tapeHeader.ChunkSize / bytesPerSample;
-        static const uint16_t BUFFER_SIZE = 4096;
-        int16_t* buffer = new int16_t[BUFFER_SIZE];
-
-        std::cout << sizeof buffer[0] << std::endl;
+            uint16_t bytesPerSample = tapeHeader.bitsPerSample / 8;      
+            uint64_t numSamples = tapeHeader.ChunkSize / bytesPerSample;
+            static const uint16_t BUFFER_SIZE = 4096;
+            int16_t* buffer = new int16_t[BUFFER_SIZE];
         
-        while ((bytesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE, tapeFile)) > 0)
-        {
-            std::cout << bytesRead << std::endl;
+            while ((bytesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE, tapeFile)) > 0)
+            {
+                memcpy(tapeData + _end, buffer, sizeof(buffer[0]) * bytesRead);
+                _end += bytesRead;
+            }
+
+            std::cout << _end << " bytes read." << std::endl;
+
+            delete [] buffer;
+            buffer = nullptr;
+            fileLength = getTapeSize(tapeFile);
+
+            
+            fclose(tapeFile);
+            return true;
         }
-        
-
-        delete [] buffer;
-        buffer = nullptr;
-        fileLength = getTapeSize(tapeFile);
-
     }
-    fclose(tapeFile);
-
-    return true;
+    return false;
 }
 
 bool Tape::ejectTape()

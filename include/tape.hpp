@@ -1,4 +1,5 @@
 #pragma once
+#include <memory.h>
 
 typedef struct  TAPE_HEADER
 {
@@ -20,6 +21,11 @@ typedef struct  TAPE_HEADER
     uint32_t        Subchunk2Size;  // Sampled data length
 } tape_hdr;
 
+typedef struct TAPE_DATA
+{
+    
+} tape_data;
+
 class Tape 
 {
 public:
@@ -31,10 +37,14 @@ public:
 
 private:
     int getTapeSize(FILE* tapeFile);
+    static const long MAX_TAPE_SIZE = 1e7;
 
-    tape_hdr tapeHeader;
-    uint32_t sampleRate;
     FILE* tapeFile;
+    tape_hdr tapeHeader;
     
-
+    uint32_t sampleRate;
+    int16_t* tapeData;
+    unsigned int channels;
+    unsigned long _end;
+    unsigned long _head;
 };
