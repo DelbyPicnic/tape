@@ -27,6 +27,30 @@ bool Tape::loadTape(std::string tpath)
     size_t bytesRead = fread(&tapeHeader, 1, headerSize, tapeFile);
     std::cout << "Header Read " << bytesRead << " bytes." << std::endl;
 
+    std::cout << tapeHeader.SamplesPerSec << std::endl;
+
+    if (bytesRead > 0)
+    {
+        uint16_t bytesPerSample = tapeHeader.bitsPerSample / 8;      
+        uint64_t numSamples = tapeHeader.ChunkSize / bytesPerSample;
+        static const uint16_t BUFFER_SIZE = 4096;
+        int16_t* buffer = new int16_t[BUFFER_SIZE];
+
+        std::cout << sizeof buffer[0] << std::endl;
+        
+        while ((bytesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE, tapeFile)) > 0)
+        {
+            std::cout << bytesRead << std::endl;
+        }
+        
+
+        delete [] buffer;
+        buffer = nullptr;
+        fileLength = getTapeSize(tapeFile);
+
+    }
+    fclose(tapeFile);
+
     return true;
 }
 
