@@ -5,124 +5,42 @@
 #include <tape.hpp>
 #include <audio.hpp>
 
-typedef signed short SAMPLE;
-
-
-Tape::Tape()
+template<typename T>
+Tape<T>::~Tape()
 {
-    tapeData = new SAMPLE[MAX_TAPE_SIZE];
-    _end = 0;
-    _head  = 0;
+    delete [] data;
+    data = nullptr;
 }
 
-Tape::~Tape()
+template<typename T>
+Tape<T>::loadFile(const std::string fname)
 {
-    delete [] tapeData;
-    tapeData = nullptr;
+    // load data from wav file into buffer
 }
 
-bool Tape::loadTape(std::string tpath)
+template<typename T>
+Tape<T>::saveFile(const std::string fname)
 {
-    if (!loaded){
-        tapeFile = fopen(tpath.c_str(), "r+");
-        if (tapeFile == nullptr){
-            std::cout << "could not load tape." << std::endl;
-            return false;
-        }
-    
-        int headerSize = sizeof(tape_hdr);
-        int fileLength = 0;
-        size_t samplesRead = fread(&tapeHeader, 1, headerSize, tapeFile);
-
-        if (samplesRead > 0){
-            if (tapeHeader.Subchunk2Size > MAX_TAPE_SIZE){
-                std::cerr << tapeHeader.Subchunk2Size << " - selected file is larger than 10mb" << std::endl;
-                exit(1);
-            }else{
-
-                uint16_t bytesPerSample = tapeHeader.bitsPerSample / 8;      
-                uint64_t numSamples = tapeHeader.ChunkSize / bytesPerSample;
-                static const uint16_t BUFFER_SIZE = 4096;
-                SAMPLE* buffer = new SAMPLE[BUFFER_SIZE];
-            
-                while ((samplesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE, tapeFile)) > 0)
-                {
-                    memcpy(tapeData + _end, buffer, sizeof(buffer[0]) * samplesRead);
-                    _end += samplesRead * sizeof(buffer[0]);
-                }
-                std::cout << _end << " bytes read." << std::endl;
-
-                delete [] buffer;
-                buffer = nullptr;
-                fclose(tapeFile);
-
-                // set tape head position
-                _head = 0; //for now
-
-                loaded = true;
-                return true;
-            }
-        }
-    }
-    return false;
+    // save data from buffer into wav file
 }
 
-bool Tape::ejectTape()
+template<typename T>
+void Tape<T>::clear()
 {
-    if (loaded){
-
-        loaded = false;
-        return true;
-    }
-    return false;
+    std::lock_guard<std::mutex> lock(mtx);
+    head = 0;
+    start = 0;
+    end = 0;
 }
 
-void Tape::_flush()
+template<typename T>
+size_t Tape<T>::getAvailable() const
 {
-
+    return maxSize - head;
 }
 
-void Tape::testFunc()
+template<typename T>
+size_t Tape<T>::getSize() const
 {
-    _start = 0;
-    _end = 12;
-    _head = 5;
-
-    std::cout << "S: " << _start << "\nE: " << _end << "\nH: " << _head << std::endl;
-
-    moveHeadBy(-5);
-
-    std::cout << "S: " << _start << "\nE: " << _end << "\nH: " << _head << std::endl;
-}
-
-long Tape::moveHeadBy(long offset)
-{
-    unsigned short sgn = signbit(offset);
-    unsigned long dist = abs(offset);
-
-    if (sgn){
-        std::cout << "no negative values yet..." << std::endl;
-    }else{
-        
-    }
-}
-
-long Tape::moveHeadTo(long position)
-{
-
-}
-
-int Tape::getTapeSize(FILE* tapeFile)
-{
-    int tapeSize = 0;
-    fseek(tapeFile, 0, SEEK_END);
-    tapeSize = ftell(tapeFile);
-    fseek(tapeFile, 0, SEEK_SET);
-
-    return tapeSize;
-}
-
-unsigned long Tape::getTapeLength()
-{
-    return _end - _start;
+    return maxSize;
 }

@@ -1,9 +1,15 @@
-#pragma once
-#include <memory.h>
-#include <math.h>
-#include <atomic>
+/*
+    based on:
+    https://embeddedartistry.com/blog/2017/05/17/creating-a-circular-buffer-in-c-and-c/
+*/
 
-typedef struct  TAPE_HEADER
+#pragma once
+#include <memory>
+#include <cstdio>
+#include <math.h>
+#include <mutex>
+
+typedef struct wav_header
 {
     /* RIFF Chunk Descriptor */
     uint8_t         RIFF[4];        // RIFF Header Magic header
@@ -21,39 +27,33 @@ typedef struct  TAPE_HEADER
     /* "data" sub-chunk */
     uint8_t         Subchunk2ID[4]; // "data"  string
     uint32_t        Subchunk2Size;  // Sampled data length
-} tape_hdr;
+} wav_hdr;
 
-typedef struct TAPE_DATA
-{
-    
-} tape_data;
 
+template <typename T>
 class Tape 
 {
 public:
-    Tape();
+    explicit Tape(size_t size) : data(std::unique_ptr<T[]>(new T[size])), maxSize(size){};
     ~Tape();
-    bool loadTape(std::string tpath);
-    bool ejectTape();
-    void _flush();
+    bool loadFile();
+    bool saveFile();
+    void clear();
+    size_t getAvailable() const;
+    size_t getSize() const;
 
-    void testFunc();
+
 private:
-    int getTapeSize(FILE* tapeFile);
-    unsigned long getTapeLength();
-    long moveHeadBy(long amount);
-    long moveHeadTo(long position);
-
-    static const long MAX_TAPE_SIZE = 1e7;
-    std::atomic<bool> loaded = false;
-
+    // for loading to and from file
     FILE* tapeFile;
-    tape_hdr tapeHeader;
-    
-    uint32_t sampleRate;
-    int16_t* tapeData;
-    unsigned int channels;
-    unsigned long _start;
-    unsigned long _end;
-    unsigned long _head;
+    wav_hdr tapeHeader;
+
+    // for managing internal data
+    std::mutex mtx;
+    std::unique_ptr<T[]> data;
+    const size_t maxSize;
+    size_t sampleRate;
+    size_t start = 0;
+    size_t end = 0;
+    size_t head = 0;
 };
