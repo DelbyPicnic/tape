@@ -75,5 +75,7 @@ Temporary Items
 .history
 
 build/
+testing/
+temp.*
 
 # End of https://www.gitignore.io/api/c++,macos,visualstudiocode

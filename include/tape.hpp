@@ -1,5 +1,7 @@
 #pragma once
 #include <memory.h>
+#include <math.h>
+#include <atomic>
 
 typedef struct  TAPE_HEADER
 {
@@ -35,10 +37,15 @@ public:
     bool ejectTape();
     void _flush();
 
-
+    void testFunc();
 private:
     int getTapeSize(FILE* tapeFile);
+    unsigned long getTapeLength();
+    long moveHeadBy(long amount);
+    long moveHeadTo(long position);
+
     static const long MAX_TAPE_SIZE = 1e7;
+    std::atomic<bool> loaded = false;
 
     FILE* tapeFile;
     tape_hdr tapeHeader;
@@ -46,6 +53,7 @@ private:
     uint32_t sampleRate;
     int16_t* tapeData;
     unsigned int channels;
+    unsigned long _start;
     unsigned long _end;
     unsigned long _head;
 };
