@@ -8,45 +8,23 @@
 #include <cstdio>
 #include <math.h>
 #include <mutex>
-
-typedef struct wav_header
-{
-    /* RIFF Chunk Descriptor */
-    uint8_t         RIFF[4];        // RIFF Header Magic header
-    uint32_t        ChunkSize;      // RIFF Chunk Size
-    uint8_t         WAVE[4];        // WAVE Header
-    /* "fmt" sub-chunk */
-    uint8_t         fmt[4];         // FMT header
-    uint32_t        Subchunk1Size;  // Size of the fmt chunk
-    uint16_t        AudioFormat;    // Audio format 1=PCM,6=mulaw,7=alaw,     257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
-    uint16_t        NumOfChan;      // Number of channels 1=Mono 2=Sterio
-    uint32_t        SamplesPerSec;  // Sampling Frequency in Hz
-    uint32_t        bytesPerSec;    // bytes per second
-    uint16_t        blockAlign;     // 2=16-bit mono, 4=16-bit stereo
-    uint16_t        bitsPerSample;  // Number of bits per sample
-    /* "data" sub-chunk */
-    uint8_t         Subchunk2ID[4]; // "data"  string
-    uint32_t        Subchunk2Size;  // Sampled data length
-} wav_hdr;
-
+#include <wave.hpp>
 
 template <typename T>
 class Tape 
 {
 public:
     explicit Tape(size_t size) : data(std::unique_ptr<T[]>(new T[size])), maxSize(size){};
-    ~Tape();
-    bool loadFile();
-    bool saveFile();
+    bool loadFile(const std::string fname);
+    bool saveFile(const std::string fname);
     void clear();
     size_t getAvailable() const;
     size_t getSize() const;
 
-
 private:
     // for loading to and from file
-    FILE* tapeFile;
-    wav_hdr tapeHeader;
+    FILE* wavFile;
+    wav_hdr waveHeader;
 
     // for managing internal data
     std::mutex mtx;
@@ -57,3 +35,78 @@ private:
     size_t end = 0;
     size_t head = 0;
 };
+
+template<typename T>
+bool Tape<T>::loadFile(const std::string fname)
+{
+    wavFile = fopen(fname.c_str(), "r");
+    if (wavFile == nullptr){
+        std::cout << "could not load tape." << std::endl;
+        return false;
+    }
+
+    int headerSize = sizeof(wav_hdr);
+    int fileLength = 0;
+    size_t samplesRead = fread(&waveHeader, 1, headerSize, wavFile);
+
+    if (samplesRead > 0){
+        if (waveHeader.Subchunk2Size > maxSize){
+            std::cerr << waveHeader.Subchunk2Size << " - selected file is larger than allocated memory" << std::endl;
+            exit(1);
+        }else{
+
+            uint16_t bytesPerSample = waveHeader.bitsPerSample / 8;  
+            uint64_t numSamples = waveHeader.ChunkSize / bytesPerSample;
+            static const uint16_t BUFFER_SIZE = 4096;
+            T* buffer = new T[BUFFER_SIZE];
+            T* t_data = data.get();
+
+            while ((samplesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE, wavFile)) > 0)
+            {
+                memcpy(t_data + end, buffer, sizeof(buffer[0]) * samplesRead);
+                end += samplesRead * sizeof(buffer[0]);
+                
+            }
+        
+            std::cout << end << " bytes read." << std::endl;
+
+            delete [] buffer;
+            buffer = nullptr;
+            fclose(wavFile);
+
+            // set tape head position
+            head = 0; //for now
+
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+template<typename T>
+bool Tape<T>::saveFile(const std::string fname)
+{
+    // save data from buffer into wav file
+}
+
+template<typename T>
+void Tape<T>::clear()
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    head = 0;
+    start = 0;
+    end = 0;
+}
+
+template<typename T>
+size_t Tape<T>::getAvailable() const
+{
+    return maxSize - head;
+}
+
+template<typename T>
+size_t Tape<T>::getSize() const
+{
+    return maxSize;
+}
