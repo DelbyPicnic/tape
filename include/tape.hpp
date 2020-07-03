@@ -17,6 +17,7 @@ public:
     explicit Tape(size_t size) : data(std::unique_ptr<T[]>(new T[size])), maxSize(size){};
     bool loadFile(const std::string fname);
     bool saveFile(const std::string fname);
+    void initFile();
     void clear();
     size_t getAvailable() const;
     size_t getSize() const;
@@ -87,8 +88,43 @@ bool Tape<T>::loadFile(const std::string fname)
 template<typename T>
 bool Tape<T>::saveFile(const std::string fname)
 {
-    // save data from buffer into wav file
+    wavFile = fopen(fname.c_str(), "wb");
+    if (wavFile == nullptr){
+        std::cout << "could not save tape." << std::endl;
+        return false;
+    }
+
+    int headerSize = sizeof(wav_hdr);
+    int fileLength = 0;
+    //size_t samplesRead = fread(&waveHeader, 1, headerSize, wavFile);
+
+    
+    
+        
+
+    fclose(wavFile);
+    return true;
 }
+
+template<typename T>
+void Tape<T>::initFile()
+{
+    // initialise the wave file header data with the default config
+    waveHeader.RIFF = 'RIFF';
+    waveHeader.ChunkSize = (uint32_t) ; // 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
+    waveHeader.WAVE = 'WAVE';
+    waveHeader.fmt = "fmt ";
+    waveHeader.Subchunk1Size = (uint32_t) 16;
+    waveHeader.AudioFormat = (uint16_t) 1;
+    waveHeader.NumOfChan = (uint16_t) 2;
+    waveHeader.SamplesPerSec =  (uint32_t) 44100;
+    waveHeader.bytesPerSec = (uint32_t) (44100 * 16 * 2)/8; // (SampleRate * BitsPerSample * Channels)/8
+    waveHeader.blockAlign = (uint16_t) 4;
+    waveHeader.bitsPerSample = (uint16_t) 16;
+    waveHeader.Subchunk2ID = 'data';
+    waveHeader.Subchunk2Size = (uint32_t) ; // (NumSamples * NumChannels * BitsPerSample)/8
+}
+
 
 template<typename T>
 void Tape<T>::clear()
